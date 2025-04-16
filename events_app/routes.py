@@ -18,8 +18,8 @@ main = Blueprint('main', __name__)
 def index():
     """Show upcoming events to users!"""
 
-    # TODO: Get all events and send to the template
-    
+    # Get all events and send to the template
+    events = Event.query.all()
     return render_template('index.html')
 
 
@@ -40,8 +40,18 @@ def create():
             return render_template('create.html', 
                 error='Incorrect datetime format! Please try again.')
 
-        # TODO: Create a new event with the given title, description, & 
+        # Create a new event with the given title, description, & 
         # datetime, then add and commit to the database
+        event_type = request.form.get('event_type')
+        new_event = Event(
+            title=new_event_title,
+            description=new_event_description,
+            date_and_time=date_and_time,
+            event_type=event_type
+        )
+        # Add and commit to the database
+        db.session.add(new_event)
+        db.session.commit()
 
         flash('Event created.')
         return redirect(url_for('main.index'))
@@ -61,25 +71,51 @@ def event_detail(event_id):
 @main.route('/event/<event_id>', methods=['POST'])
 def rsvp(event_id):
     """RSVP to an event."""
-    # TODO: Get the event with the given id from the database
+    # Get the event with the given id from the database
+    event = Event.query.get_or_404(event_id)
+    
     is_returning_guest = request.form.get('returning')
     guest_name = request.form.get('guest_name')
 
     if is_returning_guest:
-        # TODO: Look up the guest by name. If the guest doesn't exist in the 
+        # Look up the guest by name. 
+        guest = Guest.query.filter_by(name=guest_name).first()
+
+        # If the guest doesn't exist in the 
         # database, render the event_detail.html template, and pass in an error
         # message as `error`.
+        if guest is None:
+            return render_template(
+            'event_detail.html', 
+            event=event,
+            error='No guest with that name was found.'
+        )
 
-        # TODO: If the guest does exist, add the event to their 
+        # If the guest does exist, add the event to their 
         # events_attending, then commit to the database.
-        pass
+        if event not in guest.events_attending:
+            guest.events_attending.append(event)
+            db.session.commit()
     else:
+        # Get form data for new guest
         guest_email = request.form.get('email')
         guest_phone = request.form.get('phone')
 
-        # TODO: Create a new guest with the given name, email, and phone, and 
-        # add the event to their events_attending, then commit to the database.
-        pass
+        # Create a new guest
+        guest = Guest(
+            name=guest_name,
+            email=guest_email,
+            phone=guest_phone
+        )
+
+        # Add the guest to the database
+        db.session.add(guest)
+        
+        # Add the event to their events_attending
+        guest.events_attending.append(event)
+        
+        # Commit changes
+        db.session.commit()
     
     flash('You have successfully RSVP\'d! See you there!')
     return redirect(url_for('main.event_detail', event_id=event_id))
@@ -87,6 +123,6 @@ def rsvp(event_id):
 
 @main.route('/guest/<guest_id>')
 def guest_detail(guest_id):
-    # TODO: Get the guest with the given id and send to the template
-    
-    return render_template('guest_detail.html')
+    # Get the guest with the given id and send to the template
+    guest = Guest.query.get_or_404(guest_id)
+    return render_template('guest_detail.html', guest=guest)
