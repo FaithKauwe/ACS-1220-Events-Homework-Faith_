@@ -49,7 +49,7 @@ def create():
             date_and_time=date_and_time,
             event_type=event_type
         )
-        # Add and commit to the database
+        
         db.session.add(new_event)
         db.session.commit()
 
@@ -63,15 +63,15 @@ def create():
 def event_detail(event_id):
     """Show a single event."""
 
-    # TODO: Get the event with the given id and send to the template
-    
-    return render_template('event_detail.html')
+    # get the event with the given id and send to the template
+    event = Event.query.get_or_404(event_id)
+    return render_template('event_detail.html', event=event)
 
 
 @main.route('/event/<event_id>', methods=['POST'])
 def rsvp(event_id):
     """RSVP to an event."""
-    # Get the event with the given id from the database
+    # get the event with the given id from the database
     event = Event.query.get_or_404(event_id)
     
     is_returning_guest = request.form.get('returning')
